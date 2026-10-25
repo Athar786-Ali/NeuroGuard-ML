@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeuroGuard ML &mdash; Transformer Failure Prediction</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="sys-bar">
+    <div class="col">
+      <div><span class="label">SYS.NAME</span> neuroguard-ml v1.0</div>
+      <div><span class="label">SYS.NODE</span> meta-model-failure-prediction</div>
+    </div>
+    <div class="col col-right">
+      <div><span class="label">MODEL</span> distilbert-sst2</div>
+      <div style="display:flex;align-items:center;gap:10px;justify-content:flex-end;">
+        <span class="label">STATUS</span> <span id="sys-status" class="status-ok">READY</span>
+        <button id="theme-toggle" class="theme-toggle" title="Toggle light/dark mode" aria-label="Toggle theme">◐</button>
+      </div>
+    </div>
+  </header>
+
+  <h1 class="pixel-title">NEUROGUARD</h1>
+
+  <p class="prompt-line">$ whoami</p>
+  <p class="body-text">A meta-model that watches a sentiment transformer and predicts when it's about to be wrong &mdash; not just what it predicts, but whether to trust it.</p>
+
+  <nav class="tab-nav" role="tablist">
+    <button class="tab-btn active" data-tab="analyze" role="tab" aria-selected="true">analyze</button>
+    <button class="tab-btn" data-tab="diagnostics" role="tab" aria-selected="false">diagnostics</button>
+    <button class="tab-btn" data-tab="ping" role="tab" aria-selected="false">ping me</button>
+  </nav>
+
+  <section class="section tab-panel" id="tab-analyze" role="tabpanel">
+    <div class="section-label">&gt; analyze</div>
+
+    <form id="analyze-form">
+      <textarea
+        id="text-input"
+        class="input-box"
+        placeholder="enter text to analyze... (ctrl+enter to run)"
+        maxlength="2000"
+        rows="3"
+      ></textarea>
+
+      <div class="chips-row">
+        <span class="chips-label">try:</span>
+        <button type="button" class="chip" data-text="this movie absolutely blew me away">this movie absolutely blew me away</button>
+        <button type="button" class="chip" data-text="not the worst film I've seen this year">not the worst film I've seen this year</button>
+        <button type="button" class="chip" data-text="disgustingly addictive from start to finish">disgustingly addictive</button>
+        <button type="button" class="chip" data-text="I hated every single minute of it">I hated every minute</button>
+        <button type="button" class="chip" data-text="sharper not duller than the original">sharper not duller</button>
+        <button type="button" class="chip" data-text="genuinely surprised by how good this was">genuinely surprised</button>
+      </div>
+
+      <div class="run-row">
+        <button type="submit" id="run-btn" class="run-btn">RUN ANALYSIS</button>
+        <span class="hint" id="run-hint">~1-3s on cpu &middot; ctrl+enter</span>
+      </div>
+    </form>
+
+    <div id="error-box" class="error-box" hidden></div>
+
+    <div id="result-block" class="result-block" hidden>
+      <div id="verdict-banner" class="verdict-banner">
+        <div class="verdict-top">
+          <div id="verdict-dot" class="dot"></div>
+          <span id="verdict-text" class="verdict-text"></span>
+        </div>
+        <div id="verdict-sub" class="verdict-sub"></div>
+      </div>
+
+      <div class="gauge-row">
+        <div class="gauge-wrap">
+          <svg id="gauge-svg" viewBox="0 0 120 120" class="gauge-svg">
+            <circle cx="60" cy="60" r="52" class="gauge-track"></circle>
+            <circle cx="60" cy="60" r="52" id="gauge-fill" class="gauge-fill"></circle>
+          </svg>
+          <div class="gauge-center">
+            <div id="gauge-value" class="gauge-value">0%</div>
+            <div class="gauge-label">failure risk</div>
+          </div>
+        </div>
+
+        <div class="evidence-rows">
+          <div class="result-row">
+            <span class="k">distilbert</span>
+            <div class="v-group">
+              <span id="ev-bert" class="v"></span>
+              <div class="conf-bar-wrap"><div id="bar-bert" class="conf-bar"></div></div>
+            </div>
+          </div>
+          <div class="result-row">
+            <span class="k">vader</span>
+            <div class="v-group">
+              <span id="ev-vader" class="v"></span>
+              <div class="conf-bar-wrap"><div id="bar-vader" class="conf-bar"></div></div>
+            </div>
+          </div>
+          <div class="result-row">
+            <span class="k">tf-idf + logreg</span>
+            <div class="v-group">
+              <span id="ev-lr" class="v"></span>
+              <div class="conf-bar-wrap"><div id="bar-lr" class="conf-bar"></div></div>
+            </div>
+          </div>
+          <div class="result-row">
+            <span class="k">entropy</span>
+            <div class="v-group">
+              <span id="ev-entropy" class="v"></span>
+              <div class="conf-bar-wrap"><div id="bar-entropy" class="conf-bar conf-bar-warn"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="history-panel" class="history-panel" hidden>
+      <div class="section-label">&gt; session history</div>
+      <div id="history-list" class="history-list"></div>
+    </div>
+
+    <div class="section" style="margin-top: 32px;">
+      <div class="section-label">&gt; model performance (from held-out test set, never used in training)</div>
+
+      {% if metrics %}
+      <div class="metrics-grid">
+        <div class="metric-cell">
+          <div class="metric-val">{{ "%.2f"|format(metrics.precision) }}</div>
+          <div class="metric-label">precision</div>
+        </div>
+        <div class="metric-cell">
+          <div class="metric-val">{{ "%.2f"|format(metrics.recall) }}</div>
+          <div class="metric-label">recall</div>
+        </div>
+        <div class="metric-cell">
+          <div class="metric-val">{{ "%.2f"|format(metrics.f1) }}</div>
+          <div class="metric-label">f1 score</div>
+        </div>
+        <div class="metric-cell">
+          <div class="metric-val">{{ metrics.test_set_size }}</div>
+          <div class="metric-label">test samples</div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-title">precision &ndash; recall tradeoff</div>
+        <svg id="pr-chart" viewBox="0 0 400 200" class="pr-svg" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="chart-caption">moving the threshold trades precision for recall</div>
+      </div>
+      {% else %}
+      <p class="body-text">Metrics not available &mdash; run the training script to generate them.</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="section tab-panel" id="tab-diagnostics" role="tabpanel" hidden>
+    {% include 'partials/diagnostics.html' %}
+  </section>
+
+  <section class="section tab-panel" id="tab-ping" role="tabpanel" hidden>
+    {% include 'partials/ping.html' %}
+  </section>
+
+  <footer class="footer-line">
+    <span>neuroguard-ml</span>
+    <div class="footer-icons">
+      <a href="https://github.com/Athar786-Ali" target="_blank" rel="noopener" aria-label="GitHub" title="GitHub">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12a11.5 11.5 0 0 0 7.87 10.93c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.54-3.88-1.54-.52-1.33-1.28-1.68-1.28-1.68-1.04-.72.08-.7.08-.7 1.16.08 1.76 1.19 1.76 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.56-.29-5.26-1.28-5.26-5.7 0-1.26.45-2.29 1.18-3.09-.12-.29-.51-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.78 0c2.2-1.49 3.17-1.18 3.17-1.18.62 1.59.23 2.76.11 3.05.74.8 1.18 1.83 1.18 3.09 0 4.43-2.7 5.41-5.27 5.7.42.36.78 1.07.78 2.16v3.2c0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z"/></svg>
+      </a>
+    </div>
+    <a href="https://github.com/Athar786-Ali/NeuroGuard-ML" target="_blank" rel="noopener">view source &rarr;</a>
+  </footer>
+
+</div>
+
+<script id="metrics-data" type="application/json">{{ metrics | tojson if metrics else 'null' }}</script>
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

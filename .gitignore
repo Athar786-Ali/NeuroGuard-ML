@@ -1,0 +1,11 @@
+venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.env
+
+artifacts/meta_model.pkl
+artifacts/meta_threshold.pkl
+artifacts/metrics.json
+artifacts/tfidf.pkl
+artifacts/lr_model.pkl

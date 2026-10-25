@@ -1,0 +1,37 @@
+<div class="section-label">&gt; ping me</div>
+<p class="body-text">
+  Found a bug, have a question, or just want to say the gauge animation is satisfying?
+  This goes straight to my inbox.
+</p>
+
+<form id="feedback-form">
+  <input
+    type="email"
+    id="feedback-email"
+    class="input-box input-box-single"
+    placeholder="your email"
+    maxlength="200"
+  >
+
+  <textarea
+    id="feedback-message"
+    class="input-box"
+    placeholder="what's on your mind..."
+    maxlength="5000"
+    rows="5"
+    style="margin-top: 12px;"
+  ></textarea>
+
+  <div class="run-row">
+    <button type="submit" id="feedback-btn" class="run-btn">SEND</button>
+    <span class="hint" id="feedback-hint"></span>
+  </div>
+</form>
+
+<div id="feedback-error-box" class="error-box" hidden></div>
+<div id="feedback-success-box" class="success-box" hidden>
+  <div class="verdict-top">
+    <div class="dot ok"></div>
+    <span class="verdict-text">message sent &mdash; thanks for reaching out</span>
+  </div>
+</div>

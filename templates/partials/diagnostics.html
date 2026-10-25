@@ -1,0 +1,96 @@
+<div class="section-label">&gt; diagnostics</div>
+<p class="body-text">
+  How the pipeline actually works, end to end. Three independent models vote on sentiment;
+  a fourth model watches for disagreement and predicts when the main model (DistilBERT)
+  is likely to be wrong.
+</p>
+
+<div class="arch-diagram">
+  <div class="arch-row arch-row-inputs">
+    <div class="arch-node arch-node-input">
+      <div class="arch-node-title">input text</div>
+      <div class="arch-node-sub">raw user sentence</div>
+    </div>
+  </div>
+
+  <div class="arch-connector" aria-hidden="true"></div>
+
+  <div class="arch-row arch-row-models">
+    <div class="arch-node">
+      <div class="arch-node-title">vader</div>
+      <div class="arch-node-sub">rule-based lexicon scorer</div>
+    </div>
+    <div class="arch-node">
+      <div class="arch-node-title">tf-idf + logreg</div>
+      <div class="arch-node-sub">classical ml baseline</div>
+    </div>
+    <div class="arch-node arch-node-primary">
+      <div class="arch-node-title">distilbert</div>
+      <div class="arch-node-sub">fine-tuned on sst-2</div>
+    </div>
+  </div>
+
+  <div class="arch-connector" aria-hidden="true"></div>
+
+  <div class="arch-row arch-row-features">
+    <div class="arch-node arch-node-wide">
+      <div class="arch-node-title">feature assembly</div>
+      <div class="arch-node-sub">predictions &middot; confidences &middot; pairwise disagreement &middot; entropy &middot; negative-intensifier lexicon flag</div>
+    </div>
+  </div>
+
+  <div class="arch-connector" aria-hidden="true"></div>
+
+  <div class="arch-row arch-row-meta">
+    <div class="arch-node arch-node-meta">
+      <div class="arch-node-title">meta-model</div>
+      <div class="arch-node-sub">calibrated random forest</div>
+    </div>
+  </div>
+
+  <div class="arch-connector" aria-hidden="true"></div>
+
+  <div class="arch-row arch-row-output">
+    <div class="arch-node arch-node-output">
+      <div class="arch-node-title">failure probability</div>
+      <div class="arch-node-sub">thresholded &middot; tuned on a held-out validation set</div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 40px;">
+  <div class="section-label">&gt; why a meta-model</div>
+  <p class="body-text">
+    DistilBERT is strong, but not infallible &mdash; wrong roughly 1 in 20 times here.
+    Rather than improving the base model, this system predicts <em>when</em> it's about
+    to fail, using signals it can't see itself: cross-model disagreement, confidence
+    calibration, and known hard patterns like negation or intensifier words used as praise.
+  </p>
+</div>
+
+<div class="section">
+  <div class="section-label">&gt; training data</div>
+  <div class="metrics-grid metrics-grid-wide">
+    <div class="metric-cell">
+      <div class="metric-val">18,125</div>
+      <div class="metric-label">training samples</div>
+    </div>
+    <div class="metric-cell">
+      <div class="metric-val">979</div>
+      <div class="metric-label">real bert failures</div>
+    </div>
+    <div class="metric-cell">
+      <div class="metric-val">125</div>
+      <div class="metric-label">curated hard examples</div>
+    </div>
+    <div class="metric-cell">
+      <div class="metric-val">19</div>
+      <div class="metric-label">lexicon intensifier words</div>
+    </div>
+  </div>
+  <p class="body-text" style="margin-top: 16px;">
+    Built from the SST-2 sentiment dataset with 45% adversarial noise injection (typos,
+    casing, punctuation), blended with hand-written negation and sarcasm-adjacent examples
+    targeting patterns the base sampling under-represented.
+  </p>
+</div>

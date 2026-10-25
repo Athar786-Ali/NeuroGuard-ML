@@ -1,0 +1,12 @@
+# Extra dependencies needed for TRAINING / RETRAINING the models and
+# running the notebook + evaluation scripts. Not needed to just serve
+# the web app -- see requirements.txt for that.
+
+-r requirements.txt
+
+datasets==2.19.1
+nltk==3.8.1
+matplotlib==3.8.4
+plotly==5.22.0
+xgboost==2.0.3
+jupyter

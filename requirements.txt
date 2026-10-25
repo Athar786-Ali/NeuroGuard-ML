@@ -1,0 +1,26 @@
+# Dependencies needed to RUN the web app (app.py / src/predict.py).
+# For training/retraining the models, also install requirements-dev.txt.
+#
+# Versions here use lower-bound pins (>=) rather than exact pins, because
+# this project has been run on Python 3.14, which is very new -- older
+# exact-pinned releases (e.g. numpy 1.26.4, torch 2.3.1) predate 3.14
+# wheel support and will try to compile from source, which fails on
+# Windows/MSVC. Using >= lets pip pick the newest compatible release.
+#
+# torch is pulled from the CPU-only index since this app only needs CPU
+# inference -- the default PyPI wheel includes CUDA libs that add
+# ~1.5-2GB and aren't needed here, and were likely the original cause of
+# earlier deploy timeouts/failures on a free-tier host.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+flask>=3.0.3
+gunicorn>=22.0.0
+numpy>=2.1.0
+pandas>=2.2.2
+scikit-learn>=1.8.0
+joblib>=1.4.2
+vaderSentiment>=3.3.2
+torch>=2.10.0
+transformers>=4.45.0
+resend>=2.0.0
+python-dotenv>=1.0.0
